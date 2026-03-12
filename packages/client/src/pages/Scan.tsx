@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { Miner, SavedRange } from '@minerupdate/shared';
 import { getRanges, createRange, deleteRange, startScan } from '../lib/api';
 import { useScanSocket } from '../hooks/useScanSocket';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from '../components/Pagination';
 
 type SortKey = keyof Pick<Miner, 'ip' | 'model' | 'firmwareVersion' | 'poolUrl' | 'workerName' | 'hashrate' | 'status'>;
 type SortDir = 'asc' | 'desc';
@@ -96,6 +98,14 @@ export default function Scan() {
     });
     return list;
   }, [miners, filter, sortKey, sortDir]);
+
+  const pagination = usePagination({ totalItems: filteredMiners.length });
+
+  useEffect(() => {
+    pagination.resetPage();
+  }, [filter, sortKey, sortDir]);
+
+  const paginatedMiners = filteredMiners.slice(pagination.startIndex, pagination.endIndex);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -358,7 +368,7 @@ export default function Scan() {
                 <>
                   {/* Mobile card view */}
                   <div className="md:hidden flex-1 overflow-y-auto divide-y divide-gray-800/30">
-                    {filteredMiners.map((miner) => (
+                    {paginatedMiners.map((miner) => (
                       <div
                         key={miner.ip}
                         onClick={() => navigate(`/miners/${miner.ip}`)}
@@ -420,7 +430,7 @@ export default function Scan() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredMiners.map((miner) => (
+                        {paginatedMiners.map((miner) => (
                           <tr
                             key={miner.ip}
                             onClick={() => navigate(`/miners/${miner.ip}`)}
@@ -478,11 +488,20 @@ export default function Scan() {
                 </>
               )}
 
-              {filteredMiners.length > 0 && (
-                <div className="px-4 py-2 border-t border-gray-800/40 text-[10px] font-mono text-gray-600">
-                  Showing {filteredMiners.length} of {miners.length} miners
-                </div>
-              )}
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                totalFiltered={filteredMiners.length}
+                totalAll={miners.length}
+                pageSizeOptions={pagination.pageSizeOptions}
+                onPageChange={pagination.setCurrentPage}
+                onPageSizeChange={pagination.setPageSize}
+                onPrev={pagination.goToPrevPage}
+                onNext={pagination.goToNextPage}
+              />
             </section>
           </div>
         </div>
