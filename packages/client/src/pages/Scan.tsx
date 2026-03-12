@@ -126,13 +126,13 @@ export default function Scan() {
       <div className="relative z-10">
         {/* Header */}
         <header className="border-b border-amber-900/30 bg-gray-950/80 backdrop-blur-sm">
-          <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
-              <h1 className="text-lg font-mono font-bold tracking-wider text-amber-500 uppercase">
+              <h1 className="text-base sm:text-lg font-mono font-bold tracking-wider text-amber-500 uppercase">
                 MinerUpdate
               </h1>
-              <span className="text-[10px] font-mono text-gray-600 border border-gray-800 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono text-gray-600 border border-gray-800 px-1.5 py-0.5 rounded hidden sm:inline">
                 v1.0
               </span>
             </div>
@@ -144,8 +144,8 @@ export default function Scan() {
           </div>
         </header>
 
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 sm:gap-6">
             {/* Left sidebar — Ranges + Scan Controls */}
             <div className="space-y-4">
               {/* Saved Ranges */}
@@ -324,8 +324,8 @@ export default function Scan() {
             </div>
 
             {/* Main content — Results Table */}
-            <section className="border border-gray-800/80 rounded-lg bg-gray-900/40 flex flex-col min-h-[600px]">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/60">
+            <section className="border border-gray-800/80 rounded-lg bg-gray-900/40 flex flex-col min-h-[400px] sm:min-h-[600px]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 border-b border-gray-800/60">
                 <h2 className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest">
                   Discovered Miners
                 </h2>
@@ -335,7 +335,7 @@ export default function Scan() {
                     placeholder="Filter..."
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="bg-gray-950 border border-gray-700 rounded px-3 py-1 text-xs font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 w-48"
+                    className="bg-gray-950 border border-gray-700 rounded px-3 py-1 text-xs font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 w-full sm:w-48"
                   />
                 )}
               </div>
@@ -355,88 +355,127 @@ export default function Scan() {
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto flex-1">
-                  <table className="w-full text-sm font-mono">
-                    <thead>
-                      <tr className="border-b border-gray-800/60 text-[10px] text-gray-500 uppercase tracking-widest">
-                        {(
-                          [
-                            ['ip', 'IP Address'],
-                            ['model', 'Model'],
-                            ['firmwareVersion', 'Firmware'],
-                            ['poolUrl', 'Pool'],
-                            ['workerName', 'Worker'],
-                            ['hashrate', 'Hashrate'],
-                            ['status', 'Status'],
-                          ] as [SortKey, string][]
-                        ).map(([key, label]) => (
-                          <th
-                            key={key}
-                            onClick={() => handleSort(key)}
-                            className="px-4 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none"
+                <>
+                  {/* Mobile card view */}
+                  <div className="md:hidden flex-1 overflow-y-auto divide-y divide-gray-800/30">
+                    {filteredMiners.map((miner) => (
+                      <div
+                        key={miner.ip}
+                        onClick={() => navigate(`/miners/${miner.ip}`)}
+                        className="px-4 py-3 hover:bg-amber-500/5 cursor-pointer transition-colors active:bg-amber-500/10"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-mono text-amber-500">{miner.ip}</span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
+                              miner.status === 'online'
+                                ? 'text-green-500'
+                                : miner.status === 'error'
+                                  ? 'text-red-500'
+                                  : 'text-gray-600'
+                            }`}
                           >
-                            {label}
-                            {sortIndicator(key)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMiners.map((miner) => (
-                        <tr
-                          key={miner.ip}
-                          onClick={() => navigate(`/miners/${miner.ip}`)}
-                          className="border-b border-gray-800/20 hover:bg-amber-500/5 cursor-pointer transition-colors group"
-                        >
-                          <td className="px-4 py-2.5 text-amber-500/90 group-hover:text-amber-400 whitespace-nowrap">
-                            {miner.ip}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-300 whitespace-nowrap">
-                            {miner.model}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">
-                            {miner.firmwareVersion}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap max-w-[200px] truncate">
-                            {miner.poolUrl}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap max-w-[160px] truncate">
-                            {miner.workerName}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap tabular-nums">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                miner.status === 'online'
+                                  ? 'bg-green-500'
+                                  : miner.status === 'error'
+                                    ? 'bg-red-500'
+                                    : 'bg-gray-600'
+                              }`}
+                            />
+                            {miner.status}
+                          </span>
+                        </div>
+                        <div className="text-xs font-mono text-gray-300">{miner.model}</div>
+                        <div className="text-[11px] font-mono text-gray-500 mt-1 truncate">
+                          {miner.firmwareVersion}
+                        </div>
+                        <div className="flex items-center justify-between mt-1.5 text-[11px] font-mono text-gray-600">
+                          <span className="truncate max-w-[60%]">{miner.workerName || '—'}</span>
+                          <span className="tabular-nums">
                             {miner.hashrate > 0
                               ? miner.hashrate >= 1000
                                 ? `${(miner.hashrate / 1000).toFixed(1)} TH/s`
                                 : `${miner.hashrate.toFixed(1)} GH/s`
                               : '—'}
-                          </td>
-                          <td className="px-4 py-2.5 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
-                                miner.status === 'online'
-                                  ? 'text-green-500'
-                                  : miner.status === 'error'
-                                    ? 'text-red-500'
-                                    : 'text-gray-600'
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  miner.status === 'online'
-                                    ? 'bg-green-500'
-                                    : miner.status === 'error'
-                                      ? 'bg-red-500'
-                                      : 'bg-gray-600'
-                                }`}
-                              />
-                              {miner.status}
-                            </span>
-                          </td>
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table view */}
+                  <div className="hidden md:block overflow-x-auto flex-1">
+                    <table className="w-full text-sm font-mono">
+                      <thead>
+                        <tr className="border-b border-gray-800/60 text-[10px] text-gray-500 uppercase tracking-widest">
+                          <th onClick={() => handleSort('ip')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">IP Address{sortIndicator('ip')}</th>
+                          <th onClick={() => handleSort('model')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Model{sortIndicator('model')}</th>
+                          <th onClick={() => handleSort('firmwareVersion')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Firmware{sortIndicator('firmwareVersion')}</th>
+                          <th onClick={() => handleSort('poolUrl')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none table-cell">Pool{sortIndicator('poolUrl')}</th>
+                          <th onClick={() => handleSort('workerName')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none table-cell">Worker{sortIndicator('workerName')}</th>
+                          <th onClick={() => handleSort('hashrate')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Hashrate{sortIndicator('hashrate')}</th>
+                          <th onClick={() => handleSort('status')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Status{sortIndicator('status')}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {filteredMiners.map((miner) => (
+                          <tr
+                            key={miner.ip}
+                            onClick={() => navigate(`/miners/${miner.ip}`)}
+                            className="border-b border-gray-800/20 hover:bg-amber-500/5 cursor-pointer transition-colors group"
+                          >
+                            <td className="px-3 py-2.5 text-amber-500/90 group-hover:text-amber-400 whitespace-nowrap">
+                              {miner.ip}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
+                              {miner.model}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap">
+                              {miner.firmwareVersion}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[200px] truncate table-cell">
+                              {miner.poolUrl}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[160px] truncate table-cell">
+                              {miner.workerName}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap tabular-nums">
+                              {miner.hashrate > 0
+                                ? miner.hashrate >= 1000
+                                  ? `${(miner.hashrate / 1000).toFixed(1)} TH/s`
+                                  : `${miner.hashrate.toFixed(1)} GH/s`
+                                : '—'}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
+                                  miner.status === 'online'
+                                    ? 'text-green-500'
+                                    : miner.status === 'error'
+                                      ? 'text-red-500'
+                                      : 'text-gray-600'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    miner.status === 'online'
+                                      ? 'bg-green-500'
+                                      : miner.status === 'error'
+                                        ? 'bg-red-500'
+                                        : 'bg-gray-600'
+                                  }`}
+                                />
+                                {miner.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
 
               {filteredMiners.length > 0 && (
