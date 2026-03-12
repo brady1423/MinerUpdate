@@ -16,6 +16,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const getRanges = () => request<SavedRange[]>('/api/ranges');
 export const createRange = (data: { name: string; range: string }) =>
   request<SavedRange>('/api/ranges', { method: 'POST', body: JSON.stringify(data) });
+export const updateRange = (id: number, data: { name?: string; range?: string }) =>
+  request<SavedRange>(`/api/ranges/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteRange = (id: number) =>
   request<void>(`/api/ranges/${id}`, { method: 'DELETE' });
 
