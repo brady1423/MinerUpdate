@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { Miner, SavedRange } from '@minerupdate/shared';
-import { getRanges, createRange, deleteRange, startScan } from '../lib/api';
+import { getRanges, createRange, updateRange, deleteRange, startScan } from '../lib/api';
 import { useScanSocket } from '../hooks/useScanSocket';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from '../components/Pagination';
+import SavedRangesList from '../components/SavedRangesList';
 
 type SortKey = keyof Pick<Miner, 'ip' | 'model' | 'firmwareVersion' | 'poolUrl' | 'workerName' | 'hashrate' | 'status'>;
 type SortDir = 'asc' | 'desc';
@@ -14,9 +17,7 @@ export default function Scan() {
   const { progress, miners, isComplete, resetScan } = useScanSocket();
 
   const [rangeInput, setRangeInput] = useState('');
-  const [newRangeName, setNewRangeName] = useState('');
-  const [newRangeValue, setNewRangeValue] = useState('');
-  const [showAddRange, setShowAddRange] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('ip');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -28,46 +29,86 @@ export default function Scan() {
 
   const addRangeMutation = useMutation({
     mutationFn: createRange,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ranges'] });
-      setNewRangeName('');
-      setNewRangeValue('');
-      setShowAddRange(false);
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ranges'] }),
+  });
+
+  const updateRangeMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; range?: string } }) =>
+      updateRange(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['ranges'] });
+      const previous = queryClient.getQueryData<SavedRange[]>(['ranges']);
+      queryClient.setQueryData<SavedRange[]>(['ranges'], (old) =>
+        old?.map((r) => (r.id === id ? { ...r, ...data } : r)),
+      );
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['ranges'], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['ranges'] }),
   });
 
   const deleteRangeMutation = useMutation({
     mutationFn: deleteRange,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ranges'] }),
+    onSuccess: (_data, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['ranges'] });
+      setCheckedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deletedId);
+        return next;
+      });
+    },
   });
 
   const scanMutation = useMutation({
     mutationFn: startScan,
   });
 
-  function handleStartScan() {
-    const ranges = rangeInput
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
-    if (ranges.length === 0) return;
-    resetScan();
-    scanMutation.mutate(ranges);
-  }
-
-  function handleRangeClick(range: SavedRange) {
-    setRangeInput((prev) => {
-      const lines = prev.split('\n').filter((l) => l.trim());
-      if (lines.includes(range.range)) return prev;
-      return [...lines, range.range].join('\n');
+  function handleToggleRange(id: number) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
     });
   }
 
-  function handleSelectAll() {
-    const allRanges = savedRanges.map((r: SavedRange) => r.range);
-    setRangeInput(allRanges.join('\n'));
+  function handleToggleAll() {
+    if (allChecked) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(savedRanges.map((r) => r.id)));
+    }
   }
 
+  const allChecked = savedRanges.length > 0 && savedRanges.every((r) => checkedIds.has(r.id));
+
+  function handleStartScan() {
+    // Combine checked saved ranges + manual textarea lines
+    const checkedRangeStrings = savedRanges
+      .filter((r) => checkedIds.has(r.id))
+      .map((r) => r.range);
+    const manualLines = rangeInput
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const allRanges = [...checkedRangeStrings, ...manualLines];
+
+    // Deduplicate
+    const unique = [...new Set(allRanges)];
+    if (unique.length === 0) return;
+
+    resetScan();
+    scanMutation.mutate(unique);
+  }
+
+  const canStartScan = checkedIds.size > 0 || rangeInput.trim().length > 0;
   const isScanning = progress?.status === 'running';
   const progressPct = progress ? Math.round((progress.scanned / progress.total) * 100) : 0;
 
@@ -96,6 +137,14 @@ export default function Scan() {
     });
     return list;
   }, [miners, filter, sortKey, sortDir]);
+
+  const pagination = usePagination({ totalItems: filteredMiners.length });
+
+  useEffect(() => {
+    pagination.resetPage();
+  }, [filter, sortKey, sortDir]);
+
+  const paginatedMiners = filteredMiners.slice(pagination.startIndex, pagination.endIndex);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -149,92 +198,17 @@ export default function Scan() {
             {/* Left sidebar — Ranges + Scan Controls */}
             <div className="space-y-4">
               {/* Saved Ranges */}
-              <section className="border border-gray-800/80 rounded-lg bg-gray-900/40">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/60">
-                  <h2 className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest">
-                    Saved Ranges
-                  </h2>
-                  <div className="flex gap-2">
-                    {savedRanges.length > 0 && (
-                      <button
-                        onClick={handleSelectAll}
-                        className="text-[10px] font-mono text-amber-600 hover:text-amber-400 transition-colors uppercase tracking-wider"
-                      >
-                        Select All
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setShowAddRange(!showAddRange)}
-                      className="text-[10px] font-mono text-amber-600 hover:text-amber-400 transition-colors uppercase tracking-wider"
-                    >
-                      {showAddRange ? 'Cancel' : '+ Add'}
-                    </button>
-                  </div>
-                </div>
-
-                {showAddRange && (
-                  <div className="px-4 py-3 border-b border-gray-800/60 space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Label (e.g. Building A)"
-                      value={newRangeName}
-                      onChange={(e) => setNewRangeName(e.target.value)}
-                      className="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-sm font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Range (e.g. 10.69.2.1-10.69.2.255)"
-                      value={newRangeValue}
-                      onChange={(e) => setNewRangeValue(e.target.value)}
-                      className="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-sm font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700"
-                    />
-                    <button
-                      onClick={() =>
-                        newRangeName &&
-                        newRangeValue &&
-                        addRangeMutation.mutate({ name: newRangeName, range: newRangeValue })
-                      }
-                      disabled={!newRangeName || !newRangeValue}
-                      className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 font-mono text-xs font-bold py-1.5 rounded transition-colors uppercase tracking-wider"
-                    >
-                      Save Range
-                    </button>
-                  </div>
-                )}
-
-                <div className="max-h-[280px] overflow-y-auto">
-                  {savedRanges.length === 0 ? (
-                    <p className="px-4 py-6 text-xs font-mono text-gray-600 text-center">
-                      No saved ranges yet
-                    </p>
-                  ) : (
-                    savedRanges.map((range: SavedRange) => (
-                      <div
-                        key={range.id}
-                        className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800/30 hover:bg-gray-800/30 transition-colors group cursor-pointer"
-                        onClick={() => handleRangeClick(range)}
-                      >
-                        <div>
-                          <div className="text-sm font-mono text-gray-300 group-hover:text-amber-400 transition-colors">
-                            {range.name}
-                          </div>
-                          <div className="text-[11px] font-mono text-gray-600">{range.range}</div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteRangeMutation.mutate(range.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition-all text-xs"
-                          title="Delete"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </section>
+              <SavedRangesList
+                ranges={savedRanges}
+                checkedIds={checkedIds}
+                onToggleRange={handleToggleRange}
+                onToggleAll={handleToggleAll}
+                onAddRange={(data) => addRangeMutation.mutate(data)}
+                onUpdateRange={(id, data) => updateRangeMutation.mutate({ id, data })}
+                onDeleteRange={(id) => deleteRangeMutation.mutate(id)}
+                isAdding={addRangeMutation.isPending}
+                allChecked={allChecked}
+              />
 
               {/* Scan Input */}
               <section className="border border-gray-800/80 rounded-lg bg-gray-900/40">
@@ -248,12 +222,17 @@ export default function Scan() {
                     value={rangeInput}
                     onChange={(e) => setRangeInput(e.target.value)}
                     placeholder={"10.69.2.1-10.69.2.255\n10.69.3.0/24\n..."}
-                    rows={6}
+                    rows={4}
                     className="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 resize-none"
                   />
+                  {checkedIds.size > 0 && (
+                    <p className="text-[10px] font-mono text-gray-500">
+                      {checkedIds.size} saved range{checkedIds.size !== 1 ? 's' : ''} selected
+                    </p>
+                  )}
                   <button
                     onClick={handleStartScan}
-                    disabled={isScanning || !rangeInput.trim()}
+                    disabled={isScanning || !canStartScan}
                     className="w-full relative overflow-hidden bg-amber-600 hover:bg-amber-500 disabled:bg-gray-800 disabled:text-gray-500 text-gray-950 font-mono text-sm font-bold py-2.5 rounded transition-colors uppercase tracking-wider"
                   >
                     {isScanning ? 'Scanning...' : 'Start Scan'}
@@ -358,7 +337,7 @@ export default function Scan() {
                 <>
                   {/* Mobile card view */}
                   <div className="md:hidden flex-1 overflow-y-auto divide-y divide-gray-800/30">
-                    {filteredMiners.map((miner) => (
+                    {paginatedMiners.map((miner) => (
                       <div
                         key={miner.ip}
                         onClick={() => navigate(`/miners/${miner.ip}`)}
@@ -420,7 +399,7 @@ export default function Scan() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredMiners.map((miner) => (
+                        {paginatedMiners.map((miner) => (
                           <tr
                             key={miner.ip}
                             onClick={() => navigate(`/miners/${miner.ip}`)}
@@ -478,11 +457,20 @@ export default function Scan() {
                 </>
               )}
 
-              {filteredMiners.length > 0 && (
-                <div className="px-4 py-2 border-t border-gray-800/40 text-[10px] font-mono text-gray-600">
-                  Showing {filteredMiners.length} of {miners.length} miners
-                </div>
-              )}
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                totalFiltered={filteredMiners.length}
+                totalAll={miners.length}
+                pageSizeOptions={pagination.pageSizeOptions}
+                onPageChange={pagination.setCurrentPage}
+                onPageSizeChange={pagination.setPageSize}
+                onPrev={pagination.goToPrevPage}
+                onNext={pagination.goToNextPage}
+              />
             </section>
           </div>
         </div>

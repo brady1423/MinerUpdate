@@ -10,6 +10,13 @@ const createRangeSchema = z.object({
   range: z.string().min(1).max(200),
 });
 
+const updateRangeSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  range: z.string().min(1).max(200).optional(),
+}).refine((data) => data.name !== undefined || data.range !== undefined, {
+  message: 'At least one of name or range must be provided',
+});
+
 router.get('/', async (_req, res) => {
   const ranges = await prisma.savedRange.findMany({
     orderBy: { createdAt: 'desc' },
@@ -25,6 +32,32 @@ router.post('/', async (req, res) => {
   }
   const range = await prisma.savedRange.create({ data: parsed.data });
   res.status(201).json(range);
+});
+
+router.put('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: 'Invalid ID' });
+    return;
+  }
+  const parsed = updateRangeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  try {
+    const range = await prisma.savedRange.update({
+      where: { id },
+      data: parsed.data,
+    });
+    res.json(range);
+  } catch (err: any) {
+    if (err?.code === 'P2025') {
+      res.status(404).json({ error: 'Range not found' });
+      return;
+    }
+    throw err;
+  }
 });
 
 router.delete('/:id', async (req, res) => {
