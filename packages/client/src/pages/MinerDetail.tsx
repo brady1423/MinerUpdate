@@ -74,7 +74,7 @@ export default function MinerDetail() {
       <div className="relative z-10">
         {/* Header */}
         <header className="border-b border-amber-900/30 bg-gray-950/80 backdrop-blur-sm">
-          <div className="max-w-[1000px] mx-auto px-6 py-4 flex items-center gap-4">
+          <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => navigate('/')}
               className="text-xs font-mono text-gray-500 hover:text-amber-500 transition-colors uppercase tracking-wider"
@@ -91,11 +91,11 @@ export default function MinerDetail() {
           </div>
         </header>
 
-        <div className="max-w-[1000px] mx-auto px-6 py-8 space-y-6">
+        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4 sm:space-y-6">
           {/* Miner Identity */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-mono font-bold text-gray-100 tabular-nums">
+              <h2 className="text-xl sm:text-2xl font-mono font-bold text-gray-100 tabular-nums">
                 {miner.ip}
               </h2>
               <p className="text-sm font-mono text-gray-500 mt-1">
@@ -126,7 +126,7 @@ export default function MinerDetail() {
               href={`http://${miner.ip}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs font-mono text-gray-300 hover:text-amber-400 transition-colors uppercase tracking-wider"
+              className="self-start px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs font-mono text-gray-300 hover:text-amber-400 transition-colors uppercase tracking-wider"
             >
               Open Web UI &rarr;
             </a>
@@ -137,17 +137,17 @@ export default function MinerDetail() {
             {fields.map((field, i) => (
               <div
                 key={field.label}
-                className={`flex items-center justify-between px-5 py-3.5 ${
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-4 px-4 sm:px-5 py-2.5 sm:py-3.5 ${
                   i < fields.length - 1 ? 'border-b border-gray-800/40' : ''
                 } hover:bg-gray-800/20 transition-colors`}
               >
-                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                <span className="text-[10px] sm:text-xs font-mono text-gray-500 uppercase tracking-widest shrink-0">
                   {field.label}
                 </span>
                 <span
                   className={`text-sm ${field.mono ? 'font-mono' : ''} ${
                     field.accent ? 'text-amber-500' : 'text-gray-200'
-                  }`}
+                  } break-all sm:break-normal sm:text-right`}
                 >
                   {field.value}
                 </span>
