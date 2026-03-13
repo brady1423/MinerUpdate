@@ -38,3 +38,43 @@ export interface ScanResult {
   totalFound: number;
   duration: number;
 }
+
+// Firmware update types
+export type FirmwareUpdateMinerStatus = 'pending' | 'uploading' | 'success' | 'failed' | 'rebooting' | 'verifying';
+
+export interface FirmwareUpdateRequest {
+  minerIps: string[];
+  firmwareFilename: string;
+}
+
+export interface FirmwareUpdateMinerProgress {
+  ip: string;
+  status: FirmwareUpdateMinerStatus;
+  error?: string;
+  newVersion?: string;
+}
+
+export interface FirmwareUpdateProgress {
+  updateId: string;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  status: 'running' | 'completed' | 'failed';
+}
+
+export interface FirmwareUpdateResult {
+  updateId: string;
+  total: number;
+  succeeded: number;
+  failed: number;
+  minerResults: FirmwareUpdateMinerProgress[];
+  duration: number;
+}
+
+export interface FirmwareValidationResult {
+  valid: boolean;
+  detectedModel: string | null;
+  compatibleMiners: string[];
+  incompatibleMiners: string[];
+}

@@ -7,6 +7,7 @@ import { useScanSocket } from '../hooks/useScanSocket';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from '../components/Pagination';
 import SavedRangesList from '../components/SavedRangesList';
+import FirmwareUpdateDialog from '../components/FirmwareUpdateDialog';
 
 type SortKey = keyof Pick<Miner, 'ip' | 'model' | 'firmwareVersion' | 'poolUrl' | 'workerName' | 'hashrate' | 'status'>;
 type SortDir = 'asc' | 'desc';
@@ -18,6 +19,8 @@ export default function Scan() {
 
   const [rangeInput, setRangeInput] = useState('');
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
+  const [selectedMiners, setSelectedMiners] = useState<Set<string>>(new Set());
+  const [showFirmwareDialog, setShowFirmwareDialog] = useState(false);
   const [filter, setFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('ip');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -105,7 +108,28 @@ export default function Scan() {
     if (unique.length === 0) return;
 
     resetScan();
+    setSelectedMiners(new Set());
     scanMutation.mutate(unique);
+  }
+
+  function handleToggleMiner(ip: string) {
+    setSelectedMiners((prev) => {
+      const next = new Set(prev);
+      if (next.has(ip)) {
+        next.delete(ip);
+      } else {
+        next.add(ip);
+      }
+      return next;
+    });
+  }
+
+  function handleToggleAllMiners() {
+    if (allMinersSelected) {
+      setSelectedMiners(new Set());
+    } else {
+      setSelectedMiners(new Set(filteredMiners.map((m) => m.ip)));
+    }
   }
 
   const canStartScan = checkedIds.size > 0 || rangeInput.trim().length > 0;
@@ -137,6 +161,8 @@ export default function Scan() {
     });
     return list;
   }, [miners, filter, sortKey, sortDir]);
+
+  const allMinersSelected = filteredMiners.length > 0 && filteredMiners.every((m) => selectedMiners.has(m.ip));
 
   const pagination = usePagination({ totalItems: filteredMiners.length });
 
@@ -308,15 +334,25 @@ export default function Scan() {
                 <h2 className="text-xs font-mono font-semibold text-gray-400 uppercase tracking-widest">
                   Discovered Miners
                 </h2>
-                {miners.length > 0 && (
-                  <input
-                    type="text"
-                    placeholder="Filter..."
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="bg-gray-950 border border-gray-700 rounded px-3 py-1 text-xs font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 w-full sm:w-48"
-                  />
-                )}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {selectedMiners.size > 0 && (
+                    <button
+                      onClick={() => setShowFirmwareDialog(true)}
+                      className="bg-amber-600 hover:bg-amber-500 text-gray-950 font-mono text-[11px] font-bold px-3 py-1 rounded transition-colors uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Update Firmware ({selectedMiners.size})
+                    </button>
+                  )}
+                  {miners.length > 0 && (
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      className="bg-gray-950 border border-gray-700 rounded px-3 py-1 text-xs font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 w-full sm:w-48"
+                    />
+                  )}
+                </div>
               </div>
 
               {miners.length === 0 ? (
@@ -340,9 +376,17 @@ export default function Scan() {
                     {paginatedMiners.map((miner) => (
                       <div
                         key={miner.ip}
-                        onClick={() => navigate(`/miners/${miner.ip}`)}
-                        className="px-4 py-3 hover:bg-amber-500/5 cursor-pointer transition-colors active:bg-amber-500/10"
+                        className="px-4 py-3 hover:bg-amber-500/5 transition-colors active:bg-amber-500/10 flex gap-3"
                       >
+                        <div className="pt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={selectedMiners.has(miner.ip)}
+                            onChange={() => handleToggleMiner(miner.ip)}
+                            className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                          />
+                        </div>
+                        <div className="flex-1 cursor-pointer" onClick={() => navigate(`/miners/${miner.ip}`)}>
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm font-mono text-amber-500">{miner.ip}</span>
                           <span
@@ -380,6 +424,7 @@ export default function Scan() {
                               : '—'}
                           </span>
                         </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -389,6 +434,14 @@ export default function Scan() {
                     <table className="w-full text-sm font-mono">
                       <thead>
                         <tr className="border-b border-gray-800/60 text-[10px] text-gray-500 uppercase tracking-widest">
+                          <th className="px-3 py-2.5 text-center w-10">
+                            <input
+                              type="checkbox"
+                              checked={allMinersSelected}
+                              onChange={handleToggleAllMiners}
+                              className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                            />
+                          </th>
                           <th onClick={() => handleSort('ip')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">IP Address{sortIndicator('ip')}</th>
                           <th onClick={() => handleSort('model')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Model{sortIndicator('model')}</th>
                           <th onClick={() => handleSort('firmwareVersion')} className="px-3 py-2.5 text-left cursor-pointer hover:text-amber-500 transition-colors whitespace-nowrap select-none">Firmware{sortIndicator('firmwareVersion')}</th>
@@ -402,32 +455,39 @@ export default function Scan() {
                         {paginatedMiners.map((miner) => (
                           <tr
                             key={miner.ip}
-                            onClick={() => navigate(`/miners/${miner.ip}`)}
                             className="border-b border-gray-800/20 hover:bg-amber-500/5 cursor-pointer transition-colors group"
                           >
-                            <td className="px-3 py-2.5 text-amber-500/90 group-hover:text-amber-400 whitespace-nowrap">
+                            <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedMiners.has(miner.ip)}
+                                onChange={() => handleToggleMiner(miner.ip)}
+                                className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                              />
+                            </td>
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-amber-500/90 group-hover:text-amber-400 whitespace-nowrap">
                               {miner.ip}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
                               {miner.model}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-gray-400 whitespace-nowrap">
                               {miner.firmwareVersion}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[200px] truncate table-cell">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[200px] truncate table-cell">
                               {miner.poolUrl}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[160px] truncate table-cell">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-gray-500 whitespace-nowrap max-w-[160px] truncate table-cell">
                               {miner.workerName}
                             </td>
-                            <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap tabular-nums">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 text-gray-400 whitespace-nowrap tabular-nums">
                               {miner.hashrate > 0
                                 ? miner.hashrate >= 1000
                                   ? `${(miner.hashrate / 1000).toFixed(1)} TH/s`
                                   : `${miner.hashrate.toFixed(1)} GH/s`
                                 : '—'}
                             </td>
-                            <td className="px-3 py-2.5 whitespace-nowrap">
+                            <td onClick={() => navigate(`/miners/${miner.ip}`)} className="px-3 py-2.5 whitespace-nowrap">
                               <span
                                 className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
                                   miner.status === 'online'
@@ -475,6 +535,14 @@ export default function Scan() {
           </div>
         </div>
       </div>
+
+      {/* Firmware Update Dialog */}
+      {showFirmwareDialog && (
+        <FirmwareUpdateDialog
+          selectedMiners={Array.from(selectedMiners)}
+          onClose={() => setShowFirmwareDialog(false)}
+        />
+      )}
     </div>
   );
 }

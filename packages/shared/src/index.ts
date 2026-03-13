@@ -4,4 +4,10 @@ export type {
   ScanRequest,
   ScanProgress,
   ScanResult,
+  FirmwareUpdateMinerStatus,
+  FirmwareUpdateRequest,
+  FirmwareUpdateMinerProgress,
+  FirmwareUpdateProgress,
+  FirmwareUpdateResult,
+  FirmwareValidationResult,
 } from './types.js';
