@@ -170,9 +170,9 @@ The firmware update pipeline:
 
 The `ip-range.ts` utility supports three formats:
 
-- **CIDR notation** — `10.69.2.0/24` (expands to all 256 IPs)
-- **Dash ranges** — `10.69.2.1-10.69.2.255`
-- **Single IPs** — `10.69.2.1`
+- **CIDR notation** — `192.168.1.0/24` (expands to all 256 IPs)
+- **Dash ranges** — `192.168.1.1-192.168.1.255`
+- **Single IPs** — `192.168.1.1`
 
 All formats are parsed, validated, and deduplicated before scanning begins.
 

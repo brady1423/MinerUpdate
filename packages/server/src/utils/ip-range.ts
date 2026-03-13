@@ -1,6 +1,6 @@
 /**
  * Parse IP range strings into arrays of individual IPs.
- * Supports: "10.69.2.1-10.69.2.255" (dash range) and "10.69.2.0/24" (CIDR)
+ * Supports: "192.168.1.1-192.168.1.255" (dash range) and "192.168.1.0/24" (CIDR)
  */
 
 function ipToNumber(ip: string): number {

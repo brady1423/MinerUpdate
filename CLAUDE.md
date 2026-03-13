@@ -37,7 +37,7 @@ npm run build               # TypeScript compile (server/shared) or tsc + vite b
 
 **Real-time scanning:** `scanner.ts` orchestrates network scans with `p-limit` (50 concurrent probes). Each probe in `antminer-client.ts` uses HTTP Digest Auth to query miner CGI endpoints. Progress and discovered miners are emitted via Socket.IO namespace `/scans` (events: `scan:progress`, `scan:found`, `scan:complete`).
 
-**IP range parsing:** `utils/ip-range.ts` handles CIDR notation, dash ranges (e.g., `10.69.2.1-10.69.2.255`), and single IPs. Returns deduplicated IP arrays.
+**IP range parsing:** `utils/ip-range.ts` handles CIDR notation, dash ranges (e.g., `192.168.1.1-192.168.1.255`), and single IPs. Returns deduplicated IP arrays.
 
 **Frontend state:** TanStack React Query for server state (ranges, miners). Custom `useScanSocket` hook manages WebSocket connection and accumulates scan results in local state.
 

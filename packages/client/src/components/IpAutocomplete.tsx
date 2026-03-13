@@ -25,7 +25,7 @@ function getSuggestions(input: string): string[] {
   const suggestions: string[] = [];
 
   if (parts.length === 3) {
-    // e.g. "10.69.2" — suggest full /24
+    // e.g. "192.168.1" — suggest full /24
     const prefix = parts.slice(0, 3).join('.');
     suggestions.push(`${prefix}.0-${prefix}.255`);
     suggestions.push(`${prefix}.0/24`);

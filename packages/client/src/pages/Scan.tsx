@@ -247,7 +247,7 @@ export default function Scan() {
                   <textarea
                     value={rangeInput}
                     onChange={(e) => setRangeInput(e.target.value)}
-                    placeholder={"10.69.2.1-10.69.2.255\n10.69.3.0/24\n..."}
+                    placeholder={"192.168.1.1-192.168.1.255\n192.168.2.0/24\n..."}
                     rows={4}
                     className="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700 resize-none"
                   />

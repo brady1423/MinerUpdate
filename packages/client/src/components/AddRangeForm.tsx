@@ -29,7 +29,7 @@ export default function AddRangeForm({ onSave, isSaving }: AddRangeFormProps) {
       <IpAutocomplete
         value={range}
         onChange={setRange}
-        placeholder="Range (e.g. 10.69.2.1-10.69.2.255)"
+        placeholder="Range (e.g. 192.168.1.1-192.168.1.255)"
         className="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-sm font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-amber-700"
       />
       <button
