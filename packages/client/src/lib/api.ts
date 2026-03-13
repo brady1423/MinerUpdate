@@ -28,3 +28,36 @@ export const startScan = (ranges: string[]) =>
 // Miners
 export const getMiners = () => request<Miner[]>('/api/miners');
 export const getMiner = (ip: string) => request<Miner>(`/api/miners/${ip}`);
+
+// Firmware
+import type { FirmwareValidationResult } from '@minerupdate/shared';
+
+export async function validateFirmware(
+  file: File,
+  minerIps: string[],
+): Promise<FirmwareValidationResult> {
+  const formData = new FormData();
+  formData.append('firmware', file);
+  formData.append('minerIps', JSON.stringify(minerIps));
+  const res = await fetch(`${BASE}/api/firmware/validate`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json() as Promise<FirmwareValidationResult>;
+}
+
+export async function startFirmwareUpdate(
+  file: File,
+  minerIps: string[],
+): Promise<{ updateId: string }> {
+  const formData = new FormData();
+  formData.append('firmware', file);
+  formData.append('minerIps', JSON.stringify(minerIps));
+  const res = await fetch(`${BASE}/api/firmware/update`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json() as Promise<{ updateId: string }>;
+}

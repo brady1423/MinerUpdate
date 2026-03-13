@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import rangesRouter from './routes/ranges.js';
 import { createScanRouter, createMinersRouter } from './routes/scans.js';
+import { createFirmwareRouter } from './routes/firmware.js';
 
 const PORT = process.env.PORT ?? 3001;
 
@@ -24,12 +25,20 @@ app.use(express.json());
 app.use('/api/ranges', rangesRouter);
 app.use('/api/scans', createScanRouter(io));
 app.use('/api/miners', createMinersRouter());
+app.use('/api/firmware', createFirmwareRouter(io));
 
-// WebSocket namespace
+// WebSocket namespaces
 io.of('/scans').on('connection', (socket) => {
   console.log(`Scanner client connected: ${socket.id}`);
   socket.on('disconnect', () => {
     console.log(`Scanner client disconnected: ${socket.id}`);
+  });
+});
+
+io.of('/firmware').on('connection', (socket) => {
+  console.log(`Firmware client connected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`Firmware client disconnected: ${socket.id}`);
   });
 });
 

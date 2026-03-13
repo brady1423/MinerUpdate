@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "digest-fetch": "^3.1.1",
     "express": "^4.21.0",
+    "multer": "^2.1.1",
     "p-limit": "^6.1.0",
     "socket.io": "^4.8.0",
     "uuid": "^11.0.0",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.1.0",
     "@types/uuid": "^10.0.0",
     "prisma": "^6.0.0",
     "tsx": "^4.19.0",
