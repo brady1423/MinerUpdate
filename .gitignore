@@ -1,4 +1,5 @@
 .claude/
+.omx/
 node_modules/
 dist/
 .env
